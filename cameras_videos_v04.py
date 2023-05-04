@@ -14,7 +14,7 @@ import PySpin
 data_path = './'
 wait_time = 1
 
-camera_fps = 60
+camera_fps = 24
 tmax = 1200
 n_images = camera_fps*tmax
 image_height = 1080
@@ -73,13 +73,15 @@ class ThreadCapture(threading.Thread):
             try:
                 #  Get next frame
                 # image_result = self.camera.GetNextImage()
-                image_result = self.camera.GetNextImage(100)
+                image_result = self.camera.GetNextImage(50)
 
                 if (t0==-1):
                     t0 = image_result.GetTimeStamp()
+                    t0_clock = time.time()
                     print('*** ACQUISITION STARTED ***')
                 timestamps.append((image_result.GetTimeStamp()-t0)/1000000.0)
-                self.pts_handle.write('%d,%f\n' % (im,timestamps[im]))
+                # self.pts_handle.write('%d,%f\n' % (im,timestamps[im]))
+                self.pts_handle.write(f'{im},{timestamps[im]},{(time.time()-t0_clock)*1000}\n')
                 print('Camera %d, %s Frame %d, time %.2f' % (self.cn, self.camera.DeviceSerialNumber(), im,timestamps[im]/1000))
                 
                 # background = ThreadWrite(image_result, self.vid_handle)
