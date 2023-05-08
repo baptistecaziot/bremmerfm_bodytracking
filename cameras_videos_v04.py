@@ -11,11 +11,11 @@ import cv2
 import PySpin
 
 
-data_path = './'
+data_path = './out/'
 wait_time = 1
 
 camera_fps = 24
-tmax = 1200
+tmax = 120
 n_images = camera_fps*tmax
 image_height = 1080
 image_width = 1440
@@ -270,13 +270,15 @@ def config_and_acquire(cam_list):
         # option.frameRate = camera_fps
         # vid_handle.Open(vid_filename, option)
         
-        vid_handle = PySpin.SpinVideo()
-        # option = PySpin.AVIption()
-        option = PySpin.MJPGOption()
-        option.frameRate = camera_fps
-        option.height = int(image_height/bin_size)
-        option.width = int(image_width/bin_size)
-        vid_handle.Open(vid_filename, option)
+        # vid_handle = PySpin.SpinVideo()
+        # # option = PySpin.AVIption()
+        # option = PySpin.MJPGOption()
+        # option.frameRate = camera_fps
+        # option.height = int(image_height/bin_size)
+        # option.width = int(image_width/bin_size)
+        # vid_handle.Open(vid_filename, option)
+
+        vid_handle = OpenCV(vid_filename)
         print('Opened video %s' % vid_filename)
         
         # Open timestamps file
@@ -330,6 +332,18 @@ def config_and_acquire(cam_list):
     for cn, camera in enumerate(cam_list):
         print('deinit', cn)
         camera.DeInit()
+
+
+class OpenCV:
+    def __init__(self, vidname):
+        os.makedirs(vidname)
+        self.vidname = vidname
+        self.counter = 0
+
+    def Append(self, img):
+        cv2.imwrite(os.path.join(self.vidname, f'f{self.counter:09d}.jpg'), img.GetNDArray())
+        self.counter += 1
+
 
 def main():
 
