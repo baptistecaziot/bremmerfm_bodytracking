@@ -47,11 +47,13 @@ for device_number in device_numbers:
     vid_handle[device_number].Open(f'{device_number}', option)
     
 images = {}
+time = {device: [] for device in cams}
 for frame_n in range(100):
     for device_number in device_numbers:
         cam = cams[device_number]
         print('GetNextImage from camera %s' % cam.DeviceSerialNumber())
         image = cam.GetNextImage()
+        time[device_number].append(str(image.GetTimeStamp()/1000))
         images[device_number] = image
 
         cam = cams[device_number]
@@ -62,6 +64,8 @@ for frame_n in range(100):
 
 # for device_number in device_numbers:
 #     cam.EndAcquisition()
+with open('timing.txt', 'w') as fh:
+    fh.writelines([", ".join(t)+'\n' for t in zip(*time.values())])
 
 for key, vid_handle in vid_handle.items():
     print('Save and end camera %s' % cam.DeviceSerialNumber())
