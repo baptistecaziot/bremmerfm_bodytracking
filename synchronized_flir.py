@@ -10,8 +10,8 @@ def configure_cam(camera, master):
         camera.TriggerSource.SetValue(PySpin.TriggerSource_Line3)
         camera.TriggerOverlap.SetValue(PySpin.TriggerOverlap_ReadOut)
         camera.TriggerMode.SetValue(PySpin.TriggerMode_On)
-    camera.AcquisitionMode.SetValue(PySpin.AcquisitionMode_SingleFrame)
-    # camera.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
+    # camera.AcquisitionMode.SetValue(PySpin.AcquisitionMode_SingleFrame)
+    camera.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
     
     
 master_camera = '21187339'
@@ -31,6 +31,7 @@ for cn,camera in enumerate(cam_list):
         configure_cam(camera,1)
     else:
         configure_cam(camera,0)
+
 print([cam.DeviceSerialNumber() for cam in cam_list])
 cams = {cam.DeviceSerialNumber(): cam for cam in cam_list}
 
@@ -39,19 +40,29 @@ for device_number in device_numbers[::-1]:
     print('Aquire from camera %s' % cam.DeviceSerialNumber())
     # Start acquisition; note that secondary cameras have to be started first so acquisition of primary camera triggers secondary cameras.
     cam.BeginAcquisition()
+        
+option = PySpin.AVIOption()
+vid_handle = {k: PySpin.SpinVideo() for k in device_numbers}
+for device_number in device_numbers:
+    vid_handle[device_number].Open(f'{device_number}', option)
     
 images = {}
-for device_number in device_numbers:
-# for device_number in [secondary1, secondary2, master_camera]:
-    cam = cams[device_number]
-    # Acquire images
-    print('GetNextImage from camera %s' % cam.DeviceSerialNumber())
-    images[device_number] = cam.GetNextImage(1000)
+for frame_n in range(100):
+    for device_number in device_numbers:
+        cam = cams[device_number]
+        print('GetNextImage from camera %s' % cam.DeviceSerialNumber())
+        image = cam.GetNextImage()
+        images[device_number] = image
 
-for device_number in device_numbers:
-    cam = cams[device_number]
+        cam = cams[device_number]
+        vid_handle[device_number].Append(image)
+        # image = images[device_number]
+        # image.Save(f'cam_{device_number}.png')
+        image.Release()
+
+# for device_number in device_numbers:
+#     cam.EndAcquisition()
+
+for key, vid_handle in vid_handle.items():
     print('Save and end camera %s' % cam.DeviceSerialNumber())
-    image = images[device_number]
-    image.Save(f'cam_{device_number}.png')
-    image.Release()
-    cam.EndAcquisition()
+    vid_handle.Close()
