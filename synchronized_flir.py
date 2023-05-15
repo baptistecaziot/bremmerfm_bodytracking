@@ -19,6 +19,8 @@ secondary1 = '21187335'
 secondary2 = '21174907'
 device_numbers = [master_camera, secondary1]
 
+n_frames = 500
+
 system = PySpin.System.GetInstance()
 cam_list = system.GetCameras()
 num_cameras = cam_list.GetSize()
@@ -48,7 +50,7 @@ for device_number in device_numbers:
     
 images = {}
 time = {device: [] for device in cams}
-for frame_n in range(100):
+for frame_n in range(n_frames):
     for device_number in device_numbers:
         cam = cams[device_number]
         print('GetNextImage from camera %s' % cam.DeviceSerialNumber())
