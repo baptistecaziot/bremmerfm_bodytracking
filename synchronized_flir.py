@@ -1,5 +1,6 @@
 import PySpin
 import cameras_videos_v04 as c
+from dataclasses import dataclass
 
 def configure_cam(camera, master):    
     
@@ -42,11 +43,24 @@ for device_number in device_numbers[::-1]:
     print('Aquire from camera %s' % cam.DeviceSerialNumber())
     # Start acquisition; note that secondary cameras have to be started first so acquisition of primary camera triggers secondary cameras.
     cam.BeginAcquisition()
+
+@dataclass
+class VideoHandle():
+    device_number: str
+    option = PySpin.AVIOption()
+    handle = PySpin.SpinVideo()
+
+    def __post_init__(self):
+        self.handle.Open(f'{self.device_number}', self.option)
+
+    def append(self, frame):
+        self.handle.Append(image)
+
+    def close(self):
+        self.handle.Close()
+
         
-option = PySpin.AVIOption()
-vid_handle = {k: PySpin.SpinVideo() for k in device_numbers}
-for device_number in device_numbers:
-    vid_handle[device_number].Open(f'{device_number}', option)
+vid_handle = {key: VideoHandle(key) for key in device_numbers}
     
 images = {}
 time = {device: [] for device in cams}
@@ -59,7 +73,7 @@ for frame_n in range(n_frames):
         images[device_number] = image
 
         cam = cams[device_number]
-        vid_handle[device_number].Append(image)
+        vid_handle[device_number].append(image)
         # image = images[device_number]
         # image.Save(f'cam_{device_number}.png')
         image.Release()
@@ -71,4 +85,4 @@ with open('timing.txt', 'w') as fh:
 
 for key, vid_handle in vid_handle.items():
     print('Save and end camera %s' % cam.DeviceSerialNumber())
-    vid_handle.Close()
+    vid_handle.close()
