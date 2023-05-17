@@ -3,14 +3,13 @@ import cameras_videos_v04 as c
 from dataclasses import dataclass
 
 
-@dataclass
 class VideoHandle():
-    device_number: str
-    option = PySpin.AVIOption()
-    handle = PySpin.SpinVideo()
-
-    def __post_init__(self):
-        self.handle.Open(f'{self.device_number}', self.option)
+    def __init__(self, device_number):
+        self.device_number = device_number
+        self.option = PySpin.AVIOption()
+        self.handle = PySpin.SpinVideo()
+        fn = f'out/{self.device_number}'
+        self.handle.Open(fn, self.option)
 
     def append(self, frame):
         self.handle.Append(image)
@@ -45,7 +44,7 @@ def configure_cam(camera, master, mode=PySpin.AcquisitionMode_Continuous):
 master_camera = '21187339'
 secondary1 = '21187335'
 secondary2 = '21174907'
-device_numbers = [master_camera, secondary1]
+device_numbers = [master_camera, secondary1, secondary2]
 
 n_frames = 500
 
@@ -82,7 +81,6 @@ for device_number in device_numbers[::-1]:
         
 handle = {key: Handle(key) for key in device_numbers}
     
-images = {}
 time = {device: [] for device in cams}
 for frame_n in range(n_frames):
     for device_number in device_numbers:
@@ -90,7 +88,6 @@ for frame_n in range(n_frames):
         print('GetNextImage from camera %s' % cam.DeviceSerialNumber())
         image = cam.GetNextImage()
         time[device_number].append(str(image.GetTimeStamp()/1000))
-        images[device_number] = image
 
         cam = cams[device_number]
         handle[device_number].append(image)
@@ -102,5 +99,5 @@ with open('timing.txt', 'w') as fh:
     fh.writelines([", ".join(t)+'\n' for t in zip(*time.values())])
 
 for key, h in handle.items():
-    print('Save and end camera %s' % cam.DeviceSerialNumber())
+    print(f'Save and end camera {key}')
     h.close()
