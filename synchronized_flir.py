@@ -9,11 +9,12 @@ camera_fps = 24
 master_camera = '21187339'
 secondary1 = '21187335'
 secondary2 = '21174907'
-device_numbers = [master_camera, secondary2]
+device_numbers = [master_camera, secondary1]
 
-n_frames = 4320
-n_frames = 1
+n_frames = 50
 n_frames = 500
+n_frames = 1
+n_frames = 4320
 
 
 class VideoHandle():
@@ -44,14 +45,21 @@ class ImageHandle():
 
 def configure_cam(camera, master, mode=PySpin.AcquisitionMode_Continuous):
     
+    camera.TriggerMode.SetValue(PySpin.TriggerMode_On)
     if master:
-        camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
+        # camera.LineSelector.SetValue(PySpin.LineSelector_Line1)
+        # camera.LineSource.SetValue(PySpin.LineSource_ExposureActive)
+        # camera.LineMode.SetValue(PySpin.LineMode_Output) 
         camera.LineSelector.SetValue(PySpin.LineSelector_Line2)
+        # camera.LineMode.SetValue(PySpin.LineMode_Input) 
+        # camera.V3_3Enable.SetValue(True)
         camera.AcquisitionFrameRate.SetValue(camera_fps)
+        camera.TriggerMode.SetValue(PySpin.TriggerMode_Off)
     else:
         camera.TriggerSource.SetValue(PySpin.TriggerSource_Line3)
         camera.TriggerOverlap.SetValue(PySpin.TriggerOverlap_ReadOut)
-        camera.TriggerMode.SetValue(PySpin.TriggerMode_On)
+        # camera.TriggerMode.SetValue(PySpin.TriggerMode_On)
+        camera.TriggerSelector.SetValue(PySpin.TriggerSelector_FrameStart)
     camera.AcquisitionMode.SetValue(mode)
 
 if n_frames == 1:
@@ -100,10 +108,10 @@ for device_number in device_numbers[::-1]:
     print('Aquire from camera %s' % cam.DeviceSerialNumber())
     # Start acquisition; note that secondary cameras have to be started first so acquisition of primary camera triggers secondary cameras.
     timestamps[device_number].append(str(time()))
-    cam.BeginAcquisition()
-    cam.EndAcquisition()
-    camera.Width.SetValue(1440//2)
-    camera.Height.SetValue(1080//2)
+    # cam.BeginAcquisition()
+    # cam.EndAcquisition()
+    # camera.Width.SetValue(1440//2)
+    # camera.Height.SetValue(1080//2)
     cam.BeginAcquisition()
 
         
