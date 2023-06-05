@@ -2,25 +2,31 @@ import PySpin
 import cameras_videos_v04 as c
 from dataclasses import dataclass
 from time import time
+from warnings import warn
+from PIL import Image
+import os
 
 out_dir = 'out'
-camera_fps = 24
+camera_fps = 60
     
 master_camera = '21187339'
 secondary1 = '21187335'
 secondary2 = '21174907'
-device_numbers = [master_camera, secondary1]
+device_numbers = [master_camera, secondary1, secondary2]
 
-n_frames = 50
-n_frames = 500
+n_frames = 5000
+n_frames = 1000
 n_frames = 1
+n_frames = 50
 n_frames = 4320
+n_frames = 500
 
 
 class VideoHandle():
     def __init__(self, device_number):
         self.device_number = device_number
         self.option = PySpin.AVIOption()
+        self.option = PySpin.MJPGOption()
         self.handle = PySpin.SpinVideo()
         fn = f'{out_dir}/{self.device_number}'
         self.handle.Open(fn, self.option)
@@ -30,6 +36,28 @@ class VideoHandle():
 
     def close(self):
         self.handle.Close()
+
+
+class CompressedImagesHandle():
+    def __init__(self, device_number):
+        self.device_number = device_number
+        os.makedirs(f'{out_dir}/jpeg_recording_{device_number}', exist_ok=True)
+        cam = cams[device_number]
+        self.width = cam.Width()
+        self.height = cam.Height()
+        self.i = 0
+        self.handle = PySpin.SpinVideo()
+    
+    def append(self, frame):
+        # frame.Convert(PySpin.PixelFormat_BayerRG8)
+        # arr = frame.GetData().reshape(self.height, self.width)
+        arr = frame.GetNDArray()
+        im = Image.fromarray(arr) 
+        im.save(f"{out_dir}/jpeg_recording_{self.device_number}/compressed_{self.device_number}_{self.i:05d}.jpeg")
+        self.i += 1
+
+    def close(self):
+        pass
 
 
 @dataclass
@@ -45,6 +73,9 @@ class ImageHandle():
 
 def configure_cam(camera, master, mode=PySpin.AcquisitionMode_Continuous):
     
+    # camera.BeginAcquisition()
+    # camera.EndAcquisition()
+    # camera.PixelFormat.SetValue(PySpin.PixelColorFilter_BayerRG)
     camera.TriggerMode.SetValue(PySpin.TriggerMode_On)
     if master:
         # camera.LineSelector.SetValue(PySpin.LineSelector_Line1)
@@ -63,10 +94,12 @@ def configure_cam(camera, master, mode=PySpin.AcquisitionMode_Continuous):
     camera.AcquisitionMode.SetValue(mode)
 
 if n_frames == 1:
+    Handle = CompressedImagesHandle
     Handle = ImageHandle
     acquisition_mode = PySpin.AcquisitionMode_SingleFrame
 else:
     Handle = VideoHandle
+    Handle = CompressedImagesHandle
     acquisition_mode = PySpin.AcquisitionMode_Continuous
 
 
@@ -76,9 +109,9 @@ num_cameras = cam_list.GetSize()
 print('Number of cameras detected: %d' % num_cameras)
 
 for cn,camera in enumerate(cam_list):
+    camera.Init()
     # camera.Width.SetValue(1440//2)
     # camera.Height.SetValue(1080//2)
-    camera.Init()
     device_number = camera.DeviceSerialNumber()
     if device_number not in device_numbers:
         print(f"Skip {device_number}")
@@ -96,24 +129,19 @@ timestamps = {device: [] for device in device_numbers}
 t0_dict = {}
 
 # for device_number in device_numbers[::-1]:
-    # cam = cams[device_number]
-    # print('Set resolution from camera %s' % cam.DeviceSerialNumber())
-    # cam.BeginAcquisition()
-    # cam.EndAcquisition()
-    # camera.Width.SetValue(1440//2)
-    # camera.Height.SetValue(1080//2)
+#     cam = cams[device_number]
+#     cam.BeginAcquisition()
+#     cam.EndAcquisition()
 
 for device_number in device_numbers[::-1]:
     cam = cams[device_number]
     print('Aquire from camera %s' % cam.DeviceSerialNumber())
     # Start acquisition; note that secondary cameras have to be started first so acquisition of primary camera triggers secondary cameras.
     timestamps[device_number].append(str(time()))
-    # cam.BeginAcquisition()
-    # cam.EndAcquisition()
-    # camera.Width.SetValue(1440//2)
-    # camera.Height.SetValue(1080//2)
     cam.BeginAcquisition()
-
+    # cam.EndAcquisition()
+#     camera.Width.SetValue(1440//2)
+#     camera.Height.SetValue(1080//2)
         
 handle = {key: Handle(key) for key in device_numbers}
     
@@ -130,7 +158,13 @@ for frame_n in range(n_frames):
             timestamps[device_number].append(str(t0))
             t0_dict[device_number] = t0
         else:
-            timestamps[device_number].append(str(image.GetTimeStamp()/1000-t0_dict[device_number]))
+            t = image.GetTimeStamp()/1000-t0_dict[device_number]
+            timestamps[device_number].append(str(t))
+            if device_number == device_numbers[-1]:
+                t_diff = abs(t - float(timestamps[device_numbers[0]][-1]))
+                if t_diff > 17000:
+                    warn(f"timestamp diff = {t_diff}")
+                    
 
         cam = cams[device_number]
         handle[device_number].append(image)
